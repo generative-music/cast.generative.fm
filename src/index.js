@@ -1,5 +1,4 @@
 const CAST_MESSAGE_NAMESPACE = 'urn:x-cast:fm.generative';
-const audioEl = document.getElementById('audio-destination');
 
 const { cast } = window;
 
@@ -8,10 +7,29 @@ const playerManager = castContext.getPlayerManager();
 
 const pc = new RTCPeerConnection(null);
 
+const mediaInfo = Object.assign(
+  new cast.framework.messages.MediaInformation(),
+  {
+    metadata: Object.assign(
+      new cast.framework.messages.MusicTrackMediaMetadata(),
+      {
+        albumName: 'Generative.fm',
+        title: '',
+        artist: 'Alex Bainter',
+      }
+    ),
+    contentType: 'audio',
+    streamType: cast.framework.messages.StreamType.STREAM,
+  }
+);
+
 pc.ontrack = event => {
   console.log('track received');
-  audioEl.srcObject = event.streams[0];
-  audioEl.play();
+  mediaInfo.contentUrl = window.URL.createObjectURL(event.streams[0]);
+  playerManager.load({
+    media: mediaInfo,
+  });
+  //playerManager.setMediaInformation(mediaInfo);
 };
 
 const handleOfferReceived = (castSenderId, offer) => {
@@ -25,23 +43,36 @@ const handleOfferReceived = (castSenderId, offer) => {
 
 const makeHandleIceCandidate = castSenderId => ({ candidate }) => {
   if (candidate !== null) {
-    castContext.sendCustomMessage(
-      CAST_MESSAGE_NAMESPACE,
-      castSenderId,
-      candidate
-    );
+    castContext.sendCustomMessage(CAST_MESSAGE_NAMESPACE, castSenderId, {
+      type: 'ice_candidate',
+      candidate,
+    });
   }
 };
 
 castContext.addCustomMessageListener(CAST_MESSAGE_NAMESPACE, event => {
   const { data, senderId } = event;
   pc.onicecandidate = makeHandleIceCandidate(senderId);
-  if (data.type === 'offer') {
-    handleOfferReceived(senderId, data);
-  } else {
-    pc.addIceCandidate(data);
+  switch (data.type) {
+    case 'offer': {
+      return handleOfferReceived(senderId, data);
+    }
+    case 'ice_candidate': {
+      return pc.addIceCandidate(data.candidate);
+    }
+    case 'metadata': {
+      const { title, imageUrl } = data;
+      console.log('updating metadata');
+      Object.assign(mediaInfo.metadata, {
+        title,
+        images: [new cast.framework.messages.Image(imageUrl)],
+      });
+      return playerManager.setMediaInformation(mediaInfo);
+    }
+    default: {
+      //nothing
+    }
   }
 });
 
 castContext.start();
-console.log(castContext.getDeviceCapabilities());
