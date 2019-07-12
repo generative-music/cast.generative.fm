@@ -1,0 +1,33 @@
+{
+  "name": "cast.generative.fm",
+  "version": "0.0.0",
+  "description": "Custom receiver application for casting music from Generative.fm",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack-dev-server --host 192.168.1.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/generative-music/cast.generative.fm.git"
+  },
+  "author": "Alex Bainter <alexbainter+github@gmail.com> (https://alexbainter.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/generative-music/cast.generative.fm/issues"
+  },
+  "homepage": "https://github.com/generative-music/cast.generative.fm#readme",
+  "devDependencies": {
+    "@babel/core": "^7.5.0",
+    "@babel/preset-env": "^7.5.2",
+    "babel-loader": "^8.0.6",
+    "eslint": "^6.0.1",
+    "eslint-config-metalex9": "^0.3.0",
+    "html-webpack-plugin": "^3.2.0",
+    "prettier": "^1.18.2",
+    "webpack": "^4.35.3",
+    "webpack-cli": "^3.3.5",
+    "webpack-dev-server": "^3.7.2"
+  },
+  "dependencies": {}
+}
