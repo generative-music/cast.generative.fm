@@ -14,22 +14,48 @@ const mediaInfo = Object.assign(
       new cast.framework.messages.MusicTrackMediaMetadata(),
       {
         albumName: 'Generative.fm',
-        title: '',
-        artist: 'Alex Bainter',
+        title: 'Select a piece',
       }
     ),
     contentType: 'audio',
-    streamType: cast.framework.messages.StreamType.STREAM,
+    streamType: cast.framework.messages.StreamType.LIVE,
   }
 );
 
 pc.ontrack = event => {
   console.log('track received');
-  mediaInfo.contentUrl = window.URL.createObjectURL(event.streams[0]);
+  const [stream] = event.streams;
+  // TODO: Update this when the cast framework plays nicely with srcObject
+  try {
+    // This was deprecated but is less gross
+    mediaInfo.contentUrl = window.URL.createObjectURL(stream);
+    console.log('using non-gross deprecated source');
+  } catch (e) {
+    // This is not deprecated but is more gross
+    console.log('using gross source');
+    const audioEl = document.createElement('audio');
+    audioEl.srcObject = stream;
+    audioEl.muted = true;
+    const mediaRecorder = new MediaRecorder(stream);
+    const mediaSource = new MediaSource();
+    mediaInfo.contentUrl = window.URL.createObjectURL(mediaSource);
+    mediaSource.addEventListener('sourceopen', () => {
+      console.log('source open');
+      const sourceBuffer = mediaSource.addSourceBuffer(mediaRecorder.mimeType);
+      mediaRecorder.ondataavailable = event => {
+        const fileReader = new FileReader();
+        fileReader.onload = () => {
+          sourceBuffer.appendBuffer(fileReader.result);
+        };
+        fileReader.readAsArrayBuffer(event.data);
+      };
+      mediaRecorder.start(1000);
+    });
+  }
+
   playerManager.load({
     media: mediaInfo,
   });
-  //playerManager.setMediaInformation(mediaInfo);
 };
 
 const handleOfferReceived = (castSenderId, offer) => {
@@ -55,19 +81,24 @@ castContext.addCustomMessageListener(CAST_MESSAGE_NAMESPACE, event => {
   pc.onicecandidate = makeHandleIceCandidate(senderId);
   switch (data.type) {
     case 'offer': {
-      return handleOfferReceived(senderId, data);
+      handleOfferReceived(senderId, data);
+      break;
     }
     case 'ice_candidate': {
-      return pc.addIceCandidate(data.candidate);
+      pc.addIceCandidate(data.candidate);
+      break;
     }
     case 'metadata': {
-      const { title, imageUrl } = data;
+      const { title, imageUrl, releaseDate, artist } = data;
       console.log('updating metadata');
       Object.assign(mediaInfo.metadata, {
         title,
+        releaseDate,
+        artist,
         images: [new cast.framework.messages.Image(imageUrl)],
       });
-      return playerManager.setMediaInformation(mediaInfo);
+      playerManager.setMediaInformation(mediaInfo);
+      break;
     }
     default: {
       //nothing
