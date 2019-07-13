@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack-dev-server --host 192.168.1.10",
     "build": "webpack-cli --mode production",
-    "lint": "eslint ./src"
+    "lint": "eslint ./src",
+    "deploy": "npm run lint && npm run build && node ./scripts/deploy.js"
   },
   "repository": {
     "type": "git",
