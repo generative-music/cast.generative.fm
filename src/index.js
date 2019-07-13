@@ -1,4 +1,5 @@
 const CAST_MESSAGE_NAMESPACE = 'urn:x-cast:fm.generative';
+const MEDIA_RECORDER_SLICE_MS = 1000;
 
 const { cast } = window;
 
@@ -25,7 +26,6 @@ const mediaInfo = Object.assign(
 pc.ontrack = event => {
   console.log('track received');
   const [stream] = event.streams;
-  // TODO: Update this when the cast framework plays nicely with srcObject
   try {
     // This was deprecated but is less gross
     mediaInfo.contentUrl = window.URL.createObjectURL(stream);
@@ -42,14 +42,14 @@ pc.ontrack = event => {
     mediaSource.addEventListener('sourceopen', () => {
       console.log('source open');
       const sourceBuffer = mediaSource.addSourceBuffer(mediaRecorder.mimeType);
-      mediaRecorder.ondataavailable = event => {
+      mediaRecorder.ondataavailable = recorderEvent => {
         const fileReader = new FileReader();
         fileReader.onload = () => {
           sourceBuffer.appendBuffer(fileReader.result);
         };
-        fileReader.readAsArrayBuffer(event.data);
+        fileReader.readAsArrayBuffer(recorderEvent.data);
       };
-      mediaRecorder.start(1000);
+      mediaRecorder.start(MEDIA_RECORDER_SLICE_MS);
     });
   }
 
